@@ -892,13 +892,12 @@ function doExportPdf(y,m){
   html+='<div class="foot">가계부 앱에서 생성된 문서입니다.</div>';
   html+='</body></html>';
 
-  // 새 창에서 열고 인쇄 → PDF 저장
+  // 새 창에서 열기 (자동 인쇄 없음)
   var win=window.open('','_blank');
   if(!win){alert('팝업이 차단됐습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');return;}
   win.document.write(html);
   win.document.close();
   win.focus();
-  setTimeout(function(){win.print();},600);
 }
 </script>
 </body>
