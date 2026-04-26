@@ -141,7 +141,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;back
     <button class="mbtn" onclick="chgM(-1)">&#8249;</button>
     <span class="mtitle" id="mT"></span>
     <button class="mbtn" onclick="chgM(1)">&#8250;</button>
-    <span class="hdr-mgr" onclick="openMgr()" style="margin-right:6px;">목록 관리</span>
+    <span class="hdr-mgr" onclick="openMgr()" style="margin-right:6px;">자주 쓰는 목록</span>
     <span class="hdr-mgr" onclick="openPdfModal()" style="color:#2e7d32;">📄 저장</span>
   </div>
 </div>
@@ -892,12 +892,10 @@ function doExportPdf(y,m){
   html+='<div class="foot">가계부 앱에서 생성된 문서입니다.</div>';
   html+='</body></html>';
 
-  // 새 창에서 열기 (자동 인쇄 없음)
-  var win=window.open('','_blank');
-  if(!win){alert('팝업이 차단됐습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');return;}
-  win.document.write(html);
-  win.document.close();
-  win.focus();
+  // 현재 페이지를 PDF 내용으로 교체 (뒤로가기로 복귀 가능)
+  document.open();
+  document.write(html);
+  document.close();
 }
 </script>
 </body>
