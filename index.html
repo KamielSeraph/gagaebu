@@ -340,7 +340,7 @@ function pickQuick(name){document.getElementById('iMemo').value=name;}
 function openMgr(){
   rndrMgr();
   document.getElementById('newCatName').value='';
-  document.getElementById('mgrOv').classList.add('on');
+  openOv('mgrOv');
 }
 function rndrMgr(){
   if(!quickCats.length){
@@ -359,7 +359,7 @@ function rndrMgr(){
 }
 function addCat(){
   var nm=document.getElementById('newCatName').value.trim();
-  if(!nm)return;
+  if(!nm){alert('카테고리 이름을 입력해주세요');return;}
   for(var i=0;i<quickCats.length;i++){if(quickCats[i].name===nm){alert('이미 있는 카테고리입니다');return;}}
   quickCats.push({name:nm,items:[]});
   persist();rndrMgr();rndrQuick();
@@ -381,7 +381,7 @@ function openCatItems(idx){
   document.getElementById('catItemTitle').textContent='"'+quickCats[idx].name+'" 항목 관리';
   document.getElementById('newItemName').value='';
   rndrCatItems();
-  document.getElementById('catItemOv').classList.add('on');
+  openOv('catItemOv');
 }
 function rndrCatItems(){
   var items=quickCats[editingCatIdx].items||[];
@@ -398,7 +398,7 @@ function rndrCatItems(){
 }
 function addItem(){
   var nm=document.getElementById('newItemName').value.trim();
-  if(!nm)return;
+  if(!nm){alert('항목 이름을 입력해주세요');return;}
   var items=quickCats[editingCatIdx].items;
   if(items.indexOf(nm)>=0){alert('이미 있는 항목입니다');return;}
   items.push(nm);
@@ -454,21 +454,21 @@ function openDetail(id){
   if(!h)h='<div class="emsg">결제 내역이 없습니다</div>';
   document.getElementById('dList').innerHTML=h;
   document.getElementById('dEditBtn').onclick=function(){cls('detailOv');setTimeout(function(){openActById(id);},80);};
-  document.getElementById('detailOv').classList.add('on');
+  openOv('detailOv');
 }
 function openActById(id){
   aId=id;var e=null;for(var i=0;i<ents.length;i++){if(ents[i].id===id){e=ents[i];break;}}
   if(!e)return;
   document.getElementById('aTitle').textContent=e.memo&&e.memo.trim()?e.memo.trim():'지출';
   document.getElementById('aSub').textContent=fmt(totPay(e));
-  document.getElementById('actOv').classList.add('on');
+  openOv('actOv');
 }
 function openAct(id){
   aId=id;var e=null;for(var i=0;i<ents.length;i++){if(ents[i].id===id){e=ents[i];break;}}
   if(!e)return;
   document.getElementById('aTitle').textContent=e.memo&&e.memo.trim()?e.memo.trim():'수입';
   document.getElementById('aSub').textContent=fmt(totPay(e));
-  document.getElementById('actOv').classList.add('on');
+  openOv('actOv');
 }
 function openEdit(){
   var id=aId;cls('actOv');
@@ -481,7 +481,7 @@ function openEdit(){
   setT(e.type);
   if(e.type==='income'){document.getElementById('iAmt').value=e.amount||'';}
   else{payMethods.forEach(function(pm){var inp=document.getElementById(sid(pm));if(inp)inp.value=(e.payments&&e.payments[pm])||'';});updPayTotal();}
-  document.getElementById('frmOv').classList.add('on');
+  openOv('frmOv');
 }
 function delEntry(){
   ents=ents.filter(function(e){return e.id!==aId;});
@@ -496,9 +496,35 @@ function openAdd(){
   document.getElementById('newPayName').value='';
   setT('expense');
   rndrQuick();
-  document.getElementById('frmOv').classList.add('on');
+  openOv('frmOv');
 }
-function cls(id){document.getElementById(id).classList.remove('on');}
+function cls(id){document.getElementById(id).classList.remove('on');popStack(id);}
+
+/* ── 뒤로가기 스택 ── */
+var ovStack=[];
+function pushStack(id){
+  if(id==='confirmOv')return;
+  var idx=ovStack.indexOf(id);
+  if(idx>-1)ovStack.splice(idx,1);
+  ovStack.push(id);
+  if(ovStack.length===1)history.pushState({ov:id},'','');
+}
+function popStack(id){
+  var idx=ovStack.indexOf(id);
+  if(idx>-1)ovStack.splice(idx,1);
+}
+function openOv(id){
+  document.getElementById(id).classList.add('on');
+  pushStack(id);
+}
+window.addEventListener('popstate',function(){
+  if(ovStack.length>0){
+    var topId=ovStack[ovStack.length-1];
+    document.getElementById(topId).classList.remove('on');
+    ovStack.pop();
+    if(ovStack.length>0)history.pushState({},'','');
+  }
+});
 
 function setT(t){
   cType=t;
@@ -535,7 +561,7 @@ function confirmDelPay(idx,name){
 }
 function addPayMethod(){
   var nm=document.getElementById('newPayName').value.trim();
-  if(!nm)return;
+  if(!nm){alert('결제수단 이름을 입력해주세요');return;}
   if(payMethods.indexOf(nm)>=0){alert('이미 있는 결제수단입니다');return;}
   payMethods.push(nm);persist();
   document.getElementById('newPayName').value='';rndrPayInputs();
