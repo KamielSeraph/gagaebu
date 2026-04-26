@@ -633,8 +633,21 @@ function confirmDelPay(idx,name){
   document.getElementById('confirmTitle').textContent='결제수단 삭제';
   document.getElementById('confirmMsg').textContent='"'+name+'" 결제수단을 삭제하시겠습니까?';
   document.getElementById('confirmBtn').onclick=function(){
+    // 삭제 전 현재 입력값 저장
+    var savedVals={};
+    payMethods.forEach(function(pm){
+      var inp=document.getElementById(sid(pm));
+      if(inp) savedVals[pm]=inp.value;
+    });
     payMethods.splice(pendingDelIdx,1);
-    persist();cls('confirmOv');rndrPayInputs();
+    persist();cls('confirmOv');
+    rndrPayInputs();
+    // 저장된 값 복원
+    payMethods.forEach(function(pm){
+      var inp=document.getElementById(sid(pm));
+      if(inp&&savedVals[pm]) inp.value=savedVals[pm];
+    });
+    updPayTotal();
   };
   document.getElementById('confirmOv').classList.add('on');
 }
@@ -642,8 +655,21 @@ function addPayMethod(){
   var nm=document.getElementById('newPayName').value.trim();
   if(!nm){alert('결제수단 이름을 입력해주세요');return;}
   if(payMethods.indexOf(nm)>=0){alert('이미 있는 결제수단입니다');return;}
+  // 추가 전 현재 입력값 저장
+  var savedVals={};
+  payMethods.forEach(function(pm){
+    var inp=document.getElementById(sid(pm));
+    if(inp) savedVals[pm]=inp.value;
+  });
   payMethods.push(nm);persist();
-  document.getElementById('newPayName').value='';rndrPayInputs();
+  document.getElementById('newPayName').value='';
+  rndrPayInputs();
+  // 저장된 값 복원
+  payMethods.forEach(function(pm){
+    var inp=document.getElementById(sid(pm));
+    if(inp&&savedVals[pm]) inp.value=savedVals[pm];
+  });
+  updPayTotal();
 }
 function updPayTotal(){
   var t=0;
