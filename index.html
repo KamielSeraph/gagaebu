@@ -215,6 +215,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;back
         <button class="add-pay-btn" onclick="addPayMethod()">추가</button>
       </div>
       <div class="pay-total-row"><span class="pay-total-lbl">합계</span><span class="pay-total-amt" id="payTotal">0원</span></div>
+      <!-- 현금영수증 체크 -->
+      <div id="cashReceiptWrap" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8f8f8;border-radius:10px;margin-bottom:14px;cursor:pointer;" onclick="toggleCashReceipt()">
+        <div id="cashReceiptBox" style="width:22px;height:22px;border-radius:6px;border:2px solid #e0e0e0;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;"></div>
+        <div>
+          <div style="font-size:15px;font-weight:500;color:#1a1a1a;">현금영수증 발급</div>
+          <div style="font-size:12px;color:#aaa;margin-top:1px;">발급했다면 체크하세요</div>
+        </div>
+      </div>
     </div>
     <button class="sbtn" id="sBtn" onclick="save()">저장</button>
   </div>
@@ -366,13 +374,39 @@ function rndrMgr(){
   }
   var h='';
   quickCats.forEach(function(c,i){
-    h+='<div class="mgr-cat-row">'+
-      '<div class="mgr-cat-name">'+c.name+' <span class="mgr-cat-cnt">('+c.items.length+'개)</span></div>'+
+    h+='<div class="mgr-cat-row" id="catrow_'+i+'">'+
+      '<div class="mgr-cat-name" id="catname_'+i+'">'+c.name+' <span class="mgr-cat-cnt">('+c.items.length+'개)</span></div>'+
+      '<button class="mgr-cat-edit" onclick="startRenameCat('+i+')" style="margin-right:4px;">이름 수정</button>'+
       '<button class="mgr-cat-edit" onclick="openCatItems('+i+')">항목 편집</button>'+
       '<button class="mgr-cat-del" onclick="confirmDelCat('+i+')">✕</button>'+
     '</div>';
   });
   document.getElementById('mgrBody').innerHTML=h;
+}
+function startRenameCat(idx){
+  var nameEl=document.getElementById('catname_'+idx);
+  var oldName=quickCats[idx].name;
+  nameEl.innerHTML=
+    '<input id="renameInput_'+idx+'" value="'+oldName+'" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid #1a73e8;font-size:15px;background:#fff;outline:none;width:100%;" autocomplete="off"/>'+
+    '<div style="display:flex;gap:6px;margin-top:6px;">'+
+      '<button onclick="doRenameCat('+idx+')" style="flex:1;padding:7px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">확인</button>'+
+      '<button onclick="rndrMgr()" style="flex:1;padding:7px;background:#f0f0f0;color:#1a1a1a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">취소</button>'+
+    '</div>';
+  setTimeout(function(){
+    var inp=document.getElementById('renameInput_'+idx);
+    if(inp){inp.focus();inp.select();}
+  },50);
+}
+function doRenameCat(idx){
+  var inp=document.getElementById('renameInput_'+idx);
+  if(!inp)return;
+  var nm=inp.value.trim();
+  if(!nm){alert('카테고리 이름을 입력해주세요');return;}
+  for(var i=0;i<quickCats.length;i++){
+    if(i!==idx&&quickCats[i].name===nm){alert('이미 있는 카테고리입니다');return;}
+  }
+  quickCats[idx].name=nm;
+  persist();rndrMgr();rndrQuick();
 }
 function addCat(){
   var nm=document.getElementById('newCatName').value.trim();
@@ -469,6 +503,12 @@ function openDetail(id){
     });
   }
   if(!h)h='<div class="emsg">결제 내역이 없습니다</div>';
+  // 현금영수증 표시
+  if(e.cashReceipt){
+    h+='<div style="margin-top:12px;padding:10px 14px;background:#e8f5e9;border-radius:10px;display:flex;align-items:center;gap:8px;">'+
+      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="#2e7d32"/><polyline points="4,8 7,11 12,5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '<span style="font-size:14px;color:#2e7d32;font-weight:600;">현금영수증 발급 완료</span></div>';
+  }
   document.getElementById('dList').innerHTML=h;
   document.getElementById('dEditBtn').onclick=function(){cls('detailOv');setTimeout(function(){openActById(id);},80);};
   openOv('detailOv');
@@ -497,7 +537,7 @@ function openEdit(){
   document.getElementById('iMemo').value=e.memo||'';
   setT(e.type);
   if(e.type==='income'){document.getElementById('iAmt').value=e.amount||'';}
-  else{payMethods.forEach(function(pm){var inp=document.getElementById(sid(pm));if(inp)inp.value=(e.payments&&e.payments[pm])||'';});updPayTotal();}
+  else{payMethods.forEach(function(pm){var inp=document.getElementById(sid(pm));if(inp)inp.value=(e.payments&&e.payments[pm])||'';});updPayTotal();setCashReceipt(!!e.cashReceipt);}
   openOv('frmOv');
 }
 function delEntry(){
@@ -549,18 +589,31 @@ function setT(t){
   document.getElementById('bI').className='tbtn'+(t==='income'?' ai':'');
   document.getElementById('incomeAmtWrap').style.display=t==='income'?'block':'none';
   document.getElementById('expensePayWrap').style.display=t==='expense'?'block':'none';
-  if(t==='expense')rndrPayInputs();
+  if(t==='expense'){rndrPayInputs();setCashReceipt(false);}
   rndrQuick();
 }
+var cashReceipt=false;
+function setCashReceipt(val){
+  cashReceipt=val;
+  var box=document.getElementById('cashReceiptBox');
+  if(!box)return;
+  if(val){
+    box.style.background='#1a73e8';box.style.borderColor='#1a73e8';
+    box.innerHTML='<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><polyline points="1,5 5,9 12,1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else {
+    box.style.background='#fff';box.style.borderColor='#e0e0e0';box.innerHTML='';
+  }
+}
+function toggleCashReceipt(){setCashReceipt(!cashReceipt);}
 function rndrPayInputs(){
   var h='';
   payMethods.forEach(function(pm,i){
-    var isDef=(pm==='현금'||pm==='카드');
+    var canDel=(pm!=='현금');
     h+='<div class="pay-row">'+
       '<div class="pay-name">'+pm+'</div>'+
       '<input class="pay-input" type="number" id="'+sid(pm)+'" placeholder="0" min="0" inputmode="numeric" oninput="absVal(this);updPayTotal()"/>'+
       '<span class="pay-unit">원</span>'+
-      (!isDef?'<button class="pay-del-btn" onclick="confirmDelPay('+i+',\''+pm.replace(/'/g,"\\'")+'\')" >삭제</button>':'<span style="width:38px;flex-shrink:0;"></span>')+
+      (canDel?'<button class="pay-del-btn" onclick="confirmDelPay('+i+',\''+pm.replace(/'/g,"\\'")+'\')" >삭제</button>':'<span style="width:38px;flex-shrink:0;"></span>')+
     '</div>';
   });
   document.getElementById('payInputs').innerHTML=h;
@@ -600,8 +653,8 @@ function save(){
     var payments={},tot=0;
     payMethods.forEach(function(pm){var v=Math.abs(parseInt(document.getElementById(sid(pm)).value)||0);if(v>0){payments[pm]=v;tot+=v;}});
     if(tot<=0){alert('결제 금액을 하나 이상 입력해주세요');return;}
-    if(eId!==null){for(var i=0;i<ents.length;i++){if(ents[i].id===eId){ents[i].memo=memo;ents[i].payments=payments;break;}}}
-    else{ents.push({id:Date.now(),type:'expense',payments:payments,memo:memo,year:cY,month:cM,day:new Date().getDate()});}
+    if(eId!==null){for(var i=0;i<ents.length;i++){if(ents[i].id===eId){ents[i].memo=memo;ents[i].payments=payments;ents[i].cashReceipt=cashReceipt;break;}}}
+    else{ents.push({id:Date.now(),type:'expense',payments:payments,memo:memo,cashReceipt:cashReceipt,year:cY,month:cM,day:new Date().getDate()});}
   }
   persist();cls('frmOv');updHdr();rndrList();if(cTab==='stats')rndrStats();
 }
@@ -679,7 +732,20 @@ function openPdfModal(){
 function exportPdf(){
   var y=parseInt(document.getElementById('pdfYear').value);
   var m=parseInt(document.getElementById('pdfMonth').value);
+  // 확인 팝업
+  document.getElementById('confirmTitle').textContent='가계부 저장';
+  document.getElementById('confirmMsg').textContent=y+'년 '+m+'월 가계부를 저장하려 합니다. 저장하시겠습니까?';
+  document.getElementById('confirmBtn').textContent='저장';
+  document.getElementById('confirmBtn').onclick=function(){
+    cls('confirmOv');
+    document.getElementById('confirmBtn').textContent='삭제';
+    doExportPdf(y,m);
+  };
   cls('pdfOv');
+  document.getElementById('confirmOv').classList.add('on');
+}
+
+function doExportPdf(y,m){
   var me=ge(y,m);
   var inc=me.filter(function(e){return e.type==='income';}).reduce(function(s,e){return s+e.amount;},0);
   var exp=me.filter(function(e){return e.type==='expense';}).reduce(function(s,e){return s+totPay(e);},0);
@@ -721,8 +787,16 @@ function exportPdf(){
   '.bar-wrap{background:#f0f0f0;border-radius:4px;height:8px;margin-top:4px;overflow:hidden;}'+
   '.bar-fill{height:100%;border-radius:4px;background:#1a73e8;}'+
   '.foot{margin-top:32px;font-size:12px;color:#aaa;text-align:center;}'+
-  '@media print{body{padding:12px;}button{display:none;}}'+
+  '@media print{body{padding:12px;}button{display:none;}.btn-bar{display:none;}}'+
+  '.btn-bar{position:sticky;top:0;background:#fff;padding:10px 0 12px;margin-bottom:8px;display:flex;gap:10px;border-bottom:1px solid #e8e8e8;z-index:10;}'+
+  '.btn-print{padding:10px 20px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;}'+
+  '.btn-close{padding:10px 20px;background:#f0f0f0;color:#1a1a1a;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;}'+
   '</style></head><body>';
+
+  html+='<div class="btn-bar">'+
+    '<button class="btn-print" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>'+
+    '<button class="btn-close" onclick="window.close()">✕ 닫기</button>'+
+  '</div>';
 
   html+='<h1>'+y+'년 '+m+'월 가계부</h1>';
   html+='<div class="sub">출력일: '+new Date().toLocaleDateString('ko-KR')+'</div>';
@@ -752,7 +826,7 @@ function exportPdf(){
   if(!sorted.length){
     html+='<p style="color:#aaa;font-size:14px;">내역이 없습니다.</p>';
   } else {
-    html+='<table><thead><tr><th>날짜</th><th>내용</th><th class="r">결제수단</th><th class="r">금액</th></tr></thead><tbody>';
+    html+='<table><thead><tr><th>날짜</th><th>내용</th><th class="r">결제수단</th><th class="r">현금영수증</th><th class="r">금액</th></tr></thead><tbody>';
     sorted.forEach(function(e){
       var isInc=e.type==='income';
       var tot=totPay(e);
@@ -762,6 +836,7 @@ function exportPdf(){
         '<td>'+m+'월 '+e.day+'일</td>'+
         '<td>'+name+'</td>'+
         '<td class="r" style="color:#666;font-size:13px;">'+payInfo+'</td>'+
+        '<td class="r">'+((!isInc&&e.cashReceipt)?'<span style="color:#2e7d32;font-weight:600;">✔ 발급</span>':'<span style="color:#ccc;">-</span>')+'</td>'+
         '<td class="r '+(isInc?'inc-c':'exp-c')+'">'+(isInc?'+':'-')+fmt(tot)+'</td>'+
       '</tr>';
       // 지출 결제수단 상세
