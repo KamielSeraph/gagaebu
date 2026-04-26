@@ -64,11 +64,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;back
 .qi-empty{font-size:14px;color:#bbb;padding:4px 0;}
 .pay-section{margin-bottom:8px;}
 .pay-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-.pay-name{font-size:15px;color:#1a1a1a;flex:0 0 80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
-.pay-input{flex:1;padding:10px 10px;border-radius:10px;border:1px solid #e0e0e0;font-size:17px;background:#f8f8f8;color:#1a1a1a;outline:none;text-align:right;-webkit-appearance:none;}
+.pay-block{margin-bottom:10px;background:#fff;border-radius:10px;border:1px solid #e8e8e8;padding:10px 14px;}
+.pay-block-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.pay-block-input{display:flex;align-items:center;gap:8px;}
+.pay-name{font-size:15px;color:#1a1a1a;font-weight:600;}
+.pay-input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #e0e0e0;font-size:18px;background:#f8f8f8;color:#1a1a1a;outline:none;text-align:right;-webkit-appearance:none;}
 .pay-input:focus{border-color:#1a73e8;background:#fff;}
 .pay-unit{font-size:15px;color:#888;flex-shrink:0;}
-.pay-del-btn{background:none;border:1px solid #e0e0e0;border-radius:8px;color:#d32f2f;font-size:13px;cursor:pointer;padding:7px 9px;flex-shrink:0;font-weight:500;}
+.pay-del-btn{background:none;border:1px solid #e0e0e0;border-radius:8px;color:#d32f2f;font-size:13px;cursor:pointer;padding:6px 12px;flex-shrink:0;font-weight:500;}
 .add-pay-row{display:flex;gap:8px;margin-bottom:8px;}
 .add-pay-input{flex:1;padding:10px 12px;border-radius:10px;border:1px dashed #bbb;font-size:15px;background:#f8f8f8;color:#1a1a1a;outline:none;}
 .add-pay-btn{padding:10px 16px;background:#1a73e8;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;flex-shrink:0;font-weight:500;}
@@ -609,11 +612,15 @@ function rndrPayInputs(){
   var h='';
   payMethods.forEach(function(pm,i){
     var canDel=(pm!=='현금');
-    h+='<div class="pay-row">'+
-      '<div class="pay-name">'+pm+'</div>'+
-      '<input class="pay-input" type="number" id="'+sid(pm)+'" placeholder="0" min="0" inputmode="numeric" oninput="absVal(this);updPayTotal()"/>'+
-      '<span class="pay-unit">원</span>'+
-      (canDel?'<button class="pay-del-btn" onclick="confirmDelPay('+i+',\''+pm.replace(/'/g,"\\'")+'\')" >삭제</button>':'<span style="width:38px;flex-shrink:0;"></span>')+
+    h+='<div class="pay-block">'+
+      '<div class="pay-block-top">'+
+        '<div class="pay-name">'+pm+'</div>'+
+        (canDel?'<button class="pay-del-btn" onclick="confirmDelPay('+i+',\''+pm.replace(/'/g,"\\'")+'\')" >삭제</button>':'<span></span>')+
+      '</div>'+
+      '<div class="pay-block-input">'+
+        '<input class="pay-input" type="number" id="'+sid(pm)+'" placeholder="0" min="0" inputmode="numeric" oninput="absVal(this);updPayTotal()"/>'+
+        '<span class="pay-unit">원</span>'+
+      '</div>'+
     '</div>';
   });
   document.getElementById('payInputs').innerHTML=h;
